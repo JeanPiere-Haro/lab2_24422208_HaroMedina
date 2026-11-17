@@ -159,11 +159,11 @@ delRol(Rol,Agente):-
 
 % Nota para informe en la seccion de diseño, originalmente se habia decidido diseñar un predicado para buscar y eliminar una tarea, es decir, en  un solo predicado, pero para mayor practicidad para los siguientes RF se decidió separarlos en 2.
 
-buscarTarea(Id,[Tarea | Resto],Tarea):-
+buscarTarea(Id,[Tarea | _ ],Tarea):-
     tareaId(Tarea,Id), !.
 
 buscarTarea(Id,[Tarea | Resto],TareaBuscada):-
-    tareaId(Tarea,Id),
+    tareaId(Tarea,IdTarea),
     Id \= IdTarea,
     buscarTarea(Id,Resto,TareaBuscada).
 
@@ -180,8 +180,59 @@ eliminarTarea(Id,[Tarea | Resto],[Tarea | Resto2]):-
     Id \= IdTarea,
     eliminarTarea(Id,Resto,Resto2).
 
+% Descripción: Crea una lista de subtareas a partir de una tarea original, asignando el resto de la complejidad a las primeras.
+% Dom: Tarea(tarea) X Partes(int) X Cociente(int) X Resto(int) X Indice(int)
+% Rec: ListaSubTareas(lista de tareas)
+% Estrategia: Recursión natural.
+
+% Caso base
+crearSubTareas(_,Partes,_,_,Indice,[]):-
+    Indice > Partes, !.
+
+% Caso recursivo
+crearSubTareas(Tarea,Partes,Cociente,Resto,Indice,[TareaNueva | Resto2]):-
+    Tarea = [Id,Descripcion,Rol,Herramienta,Datos,_,Prioridad | _],
+    IdNuevo is Id * 10 + Indice,
+    format(string(DescripcionNueva),"~w (parte ~w de ~w)",[Descripcion,Indice,Partes]),
+    
+    % Se calcula la complejidad nueva
+    calcularComplejidad(Indice,Resto,Cociente,ComplejidadNueva),
+
+    % Se crea la tarea nueva
+    TareaNueva = [IdNuevo,DescripcionNueva,Rol,Herramienta,Datos,ComplejidadNueva,Prioridad,pendiente,[],""],
+
+    IndiceNuevo is Indice + 1,
+    crearSubTareas(Tarea,Partes,Cociente,Resto,IndiceNuevo,Resto2).
 
 
+
+% Descripcion: Calcula la complejidad de una subtarea asignando el resto a las primeras
+% Dom: Indice(int) X Resto(int) X Cociente(int)
+% Rec: ComplejidadNueva(int)
+% Estrategia: No aplica.
+
+calcularComplejidad(Indice,Resto,Cociente,ComplejidadNueva):-
+    Indice =< Resto,
+    ComplejidadNueva is Cociente + 1.
+
+calcularComplejidad(Indice,Resto,Cociente,ComplejidadNueva):-
+    Indice > Resto,
+    ComplejidadNueva is Cociente.
+
+% Descripción: Encola la lista de subtareas en la plataforma utilizando el RF07: Encolar tarea.
+% Dom: Plataforma(plataforma) X ListaSubTareas(lista)
+% Rec: PlataformaSalida(plataforma)
+% Recursión natural.
+
+% Caso base
+encolarSubTareas(Plataforma,[],Plataforma).
+
+% Caso recursivo
+encolarSubTareas(Plataforma,[Subtarea | Resto],PlataformaSalida):-
+    encolarTarea(Plataforma,Subtarea,Plataforma2),
+    encolarSubTareas(Plataforma2,Resto,PlataformaSalida).
+
+%Nota para informe, este es uno de los RF que más me costó y en los que más me sirvió dividir algunos procesos en funciones auxiliares
 
 
 
@@ -282,10 +333,38 @@ planificarTarea(Plataforma,IdTarea,Partes,PlataformaSalida):-
     Plataforma = [Agentes,ColaActual,MaxCiclos,Seed,CicloActual,Historial],
     
     % Verificación de condiciones
-    member(ColaActual,Plataforma).
+    buscarTarea(IdTarea,ColaActual,Tarea),
+    tareaEstado(Tarea,pendiente),
+    Partes >= 2,
+    tareaComplejidad(Tarea,Complejidad),
+    Complejidad >= Partes,
+
+    % Se elimina la tarea original de la cola
+    eliminarTarea(IdTarea,ColaActual,ColaSinTarea),
+
+    % Calculo de cociente y resto 
+    Cociente is Complejidad // Partes,
+    Resto is Complejidad mod Partes,
+
+    % Creación de subtareas
+    crearSubTareas(Tarea,Partes,Cociente,Resto,1,ListaSubTareas),
+
+    % Se encolan las nuevas subtareas
+    Plataforma2 = [Agentes,ColaSinTarea,MaxCiclos,Seed,CicloActual,Historial],
+    encolarSubTareas(Plataforma2,ListaSubTareas,Plataforma3),
+
+    Plataforma3 = [AgentesFinales,ColaFinal,MaxCiclosFinal,SeedFinal,CicloActualFinal,Historial2],
+    tareaDescripcion(Tarea,Descripcion),
+    format(string(EventoNuevo), "ciclo ~w: tarea ~w planificada en ~w subtareas",[CicloActualFinal,Descripcion,Partes]),
+    append(Historial2,[EventoNuevo],HistorialFinal),
+
+    PlataformaSalida = [AgentesFinales,ColaFinal,MaxCiclosFinal,SeedFinal,CicloActualFinal,HistorialFinal].
 
 
 
-
-
-
+% RF10 Asignación de una tarea
+% Descripción: Relaciona la plataforma con otra en que la tarea idTarea está asignada al agente que la plataforma elige con una regla fija. 
+% Dom: Plataforma(plataforma) X idTarea(int)
+% Rec: PlataformaSalida(plataforma)
+% Estrategia: No aplica.
+asignarTarea(Plataforma,IdTarea,PlataformaSalida).
