@@ -234,6 +234,82 @@ encolarSubTareas(Plataforma,[Subtarea | Resto],PlataformaSalida):-
 
 %Nota para informe, este es uno de los RF que más me costó y en los que más me sirvió dividir algunos procesos en funciones auxiliares
 
+% Para RF10
+% Descripcion: Verifica si una tarea es dependiente de otra, y comprueba si su dependencia está completada.
+% Dom: Datos(término) X Cola(lista)
+% Rec: Booleano
+% Estrategia: No aplica
+
+% Caso 1: hay dependencia
+verificarDependencia(resultado(IdDependencia),Cola):-
+    buscarTarea(IdDependencia,Cola,TareaDependencia),
+    tareaEstado(TareaDependencia, completada).
+
+% Caso 2: No hay dependencia
+verificarDependencia(Datos, _):-
+    Datos \= resultado(_).
+
+
+% Descripción: Verifica que una tarea esté pendiente y cumpla sus dependencias.
+% Dom: Tarea(tarea) X Cola(lista)
+% Rec: Booleano
+% Estrategia: No aplica.
+% Nota para informe, se optó por una funcion auxiliar para verificar las condiciones de la tarea para evitar alargar el codigo principal del RF
+esTareaValida(Tarea,Cola):-
+    tareaEstado(Tarea,pendiente),
+    tareaDatos(Tarea,Datos),
+    verificarDependencia(Datos,Cola).
+
+% Descripción: Verifica que un agente tenga herramientas utilizables, es decir que la herramienta buscada esté entre su lista de herramientas.
+% Dom: HerramientaBuscada(herramienta) X Agente(agente)
+% Rec: Booleano
+% Estrategia: No aplica.
+
+tieneHerramientas(HerramientaBuscada,Agente):-
+    agenteHerramientas(Agente,HerramientasAgente),
+    member(HerramientaBuscada,HerramientasAgente).
+
+
+% Descripcion: Compara dos agentes según el criterio de mayor cantidad de tokens, y menor Id.
+% Dom: Agente1(agente) X Agente2(agente)
+% Rec: Resultado(símbolo)
+% Estrategia: No aplica.
+
+% Nota para el informe para la sección de dificultades, se me complicó entender la sintaxis del predicado de orden superior predsort/3 debido al como deben ir los argumentos, lo que significa cada uno y sobretodo como funciona el comparador
+
+% Casos donde los tokens actuales entre los agentes son diferentes
+% Caso 1: Tokens de agente 1 > Tokens de agente 2
+elegirCandidato(Resultado,Agente1,Agente2):-
+    agenteTokensActuales(Agente1,Tokens1),
+    agenteTokensActuales(Agente2,Tokens2),
+    Tokens1 > Tokens2,
+    Resultado = < .
+
+% Caso 2: Tokens de agente 2 > Tokens de agente 1
+elegirCandidato(Resultado,Agente1,Agente2):-
+    agenteTokensActuales(Agente1,Tokens1),
+    agenteTokensActuales(Agente2,Tokens2),
+    Tokens1 < Tokens2,
+    Resultado = > .
+
+% Casos donde los tokens son iguales
+elegirCandidato(Resultado,Agente1,Agente2):-
+    agenteTokensActuales(Agente1,Tokens1),
+    agenteTokensActuales(Agente2,Tokens2),
+    Tokens1 = Tokens2,
+    agenteId(Agente1,Id1),
+    agenteId(Agente2,Id2),
+    Id1 < Id2,
+    Resultado = < .
+
+elegirCandidato(Resultado,Agente1,Agente2):-
+    agenteTokensActuales(Agente1,Tokens1),
+    agenteTokensActuales(Agente2,Tokens2),
+    Tokens1 = Tokens2,
+    agenteId(Agente1,Id1),
+    agenteId(Agente2,Id2),
+    Id2 < Id1,
+    Resultado = > .
 
 
 % Requisitos Funcionales (RF06-RF17)
@@ -367,4 +443,83 @@ planificarTarea(Plataforma,IdTarea,Partes,PlataformaSalida):-
 % Dom: Plataforma(plataforma) X idTarea(int)
 % Rec: PlataformaSalida(plataforma)
 % Estrategia: No aplica.
-asignarTarea(Plataforma,IdTarea,PlataformaSalida).
+asignarTarea(Plataforma,IdTarea,PlataformaSalida):-
+    Plataforma = [Agentes,ColaActual,MaxCiclos,Seed,CicloActual,Historial],
+    
+    % Verificación de condiciones
+    buscarTarea(IdTarea,ColaActual,Tarea),
+    esTareaValida(Tarea,ColaActual),
+    
+    tareaHerramienta(Tarea,HerramientaRequerida),
+    tareaRol(Tarea,RolRequerido),
+
+    % Candidatos 
+    agentesPorRol(Plataforma,RolRequerido,Candidatos),
+
+    % Se filtran los candidatos 
+    include(tieneHerramientas(HerramientaRequerida),Candidatos,CandidatosFiltrados),
+
+    % Se verifica que hayan candidatos aptos
+    CandidatosFiltrados \= [],
+
+    % Se elige al candidato final en base al criterio de mayor cantidad de tokens actuales y menor Id
+    predsort(elegirCandidato,CandidatosFiltrados,CandidatosFinales),
+    CandidatosFinales = [AgenteElegido | _ ],
+
+    % Se actualiza el agente y la tarea
+    Tarea = [Id,DescripcionTarea,RolRequerido,HerramientaRequerida,DatosTarea,ComplejidadTarea,PrioridadTarea,_,_,ResultadoTarea],
+    agenteId(AgenteElegido,IdAgenteElegido),
+    TareaNueva = [Id,DescripcionTarea,RolRequerido,HerramientaRequerida,DatosTarea,ComplejidadTarea,PrioridadTarea,asignada,IdAgenteElegido,ResultadoTarea],
+    reemplazarElemento(Tarea,TareaNueva,ColaActual,ColaNueva),
+
+    AgenteElegido = [IdAgente,NombreAgente,RolAgente,HerramientaAgente,TokensInicialesAgente,TokensActualesAgente,VentanaAgente,_],
+    AgenteNuevo = [IdAgente,NombreAgente,RolAgente,HerramientaAgente,TokensInicialesAgente,TokensActualesAgente,VentanaAgente,ocupado],
+    reemplazarElemento(AgenteElegido,AgenteNuevo,Agentes,AgentesNuevos),
+
+    % Se actualiza el historial
+    format(string(NuevoEvento), "ciclo ~w: tarea ~w asignada a ~w",[CicloActual,DescripcionTarea,NombreAgente]),
+    append(Historial,[NuevoEvento],HistorialNuevo),
+
+    PlataformaSalida = [AgentesNuevos,ColaNueva,MaxCiclos,Seed,CicloActual,HistorialNuevo].
+    
+
+
+
+
+
+% RF17 Representación como string
+% Descripción: Relaciona la plataforma con un string de varias líneas que la muestra.
+% Dom: Plataforma(plataforma)
+% Rec. String(string)
+
+imprimirPlataforma(Plataforma,String):-
+    Plataforma = [Agentes,ColaActual,MaxCiclos,Seed,CicloActual,Historial],
+    
+
+    % Se calcula el total de tokens gastados
+    foldl(calcularTokensGastados,Agentes,0,TotalTokensGastados).
+
+
+
+% Descripción: Calcula los tokens gastados por un agente y los suma a un acumulador
+% Dom: Agente(agente) X Acumulador(int) X AcumuladorNuevo(int)
+% Rec: No aplica
+% Estrategia: No aplica.
+calcularTokensGastados(Agente,Acumulador,AcumuladorNuevo):-
+    agenteTokensActuales(Agente,TokensActuales),
+    agenteTokensIniciales(Agente,TokensIniciales),
+
+    TokensGastadods is TokensIniciales - TokensActuales,
+    AcumuladorNuevo is Acumulador + TokensGastados.
+
+% Descripción: Convierte la lista de eventos del historial a un string
+% Dom: Historial(lista) X Acumulador(string)
+% Rec: StringFinal(string)
+% Caso Base
+historialString([],StringFinal,StringFinal).
+
+% Caso recursivo
+historialString([Evento | Resto],Acumulador,StringFinal):-
+    format(string(EventoString),"~w\n",[Evento]),
+    string_concat(Acumulador,EventoString,AcumuladorNuevo),
+    historialString(Resto,AcumuladorNuevo,StringFinal).
