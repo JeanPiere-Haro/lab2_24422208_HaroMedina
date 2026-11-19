@@ -311,6 +311,76 @@ elegirCandidato(Resultado,Agente1,Agente2):-
     Id2 < Id1,
     Resultado = > .
 
+% Para RF17
+
+% Descripción: Calcula los tokens gastados por un agente y los suma a un acumulador
+% Dom: Agente(agente) X Acumulador(int) X AcumuladorNuevo(int)
+% Rec: No aplica
+% Estrategia: No aplica.
+calcularTokensGastados(Agente,Acumulador,AcumuladorNuevo):-
+    agenteTokensActuales(Agente,TokensActuales),
+    agenteTokensIniciales(Agente,TokensIniciales),
+
+    TokensGastadods is TokensIniciales - TokensActuales,
+    AcumuladorNuevo is Acumulador + TokensGastados.
+
+% Descripción: Convierte la lista de eventos del historial a un string
+% Dom: Historial(lista) X Acumulador(string)
+% Rec: StringFinal(string)
+% Estrategia: Recursión de cola
+% Caso Base
+historialString([],StringFinal,StringFinal).
+
+% Caso recursivo
+historialString([Evento | Resto],Acumulador,StringFinal):-
+    format(string(EventoString),"~w\n",[Evento]),
+    string_concat(Acumulador,EventoString,AcumuladorNuevo),
+    historialString(Resto,AcumuladorNuevo,StringFinal).
+
+% Descripción: Convierte la cola de tareas a un string.
+% Dom: Tareas(lista) X Acumulador(string)
+% Rec: StringFinal(string)
+% Estrategia: Recursión de cola.
+
+tareasString([],StringFinal,StringFinal).
+
+
+tareasString([Tarea | Resto],Acumulador,StringFinal):-
+    Tarea = [Id,Descripcion,Rol,Herramienta,Datos,Complejidad,Prioridad,Estado,Agente,Resultado],
+
+    format(string(EventoString),"-Tarea ~w | Descripcion: ~w | Rol: ~w | Herramienta: ~w | Datos: ~w | Complejidad: ~w | Prioridad: ~w | Estado: ~w | Agente: ~w | Resultado: ~w\n",[Id,Descripcion,Rol,Herramienta,Datos,Complejidad,Prioridad,Estado,Agente,Resultado]),
+
+    string_concat(Acumulador,EventoString,AcumuladorNuevo),
+    tareasString(Resto,AcumuladorNuevo,StringFinal).
+
+% Descripción: Convierte la lista de agentes a un string.
+% Dom: Agentes(lista) X Acumulador(string)
+% Rec: StringFinal(string)
+% Estrategia: Recursión de cola.
+
+agentesString([],StringFinal,StringFinal).
+
+agentesString([Agente | Resto],Acumulador,StringFinal):-
+    Agente = [Id,Nombre,Rol,Herramientas,TokensIniciales,TokensActuales,Ventana,Estado,Supervisor,Subordinados,Memoria],
+
+    format(string(EventoString),"-Agente ~w : ~w | Rol: ~w | Estado: ~w | TokensActuales Sobre Iniciales: ~w/~w | Ventana: ~w | Supervisor: ~w | Subordinados: ~w | Memoria: ~w\n",[Id,Nombre,Rol,Estado,TokensActuales,TokensIniciales,Ventana,Supervisor,Subordinados,Memoria]),
+
+    string_concat(Acumulador,EventoString,AcumuladorNuevo),
+    agentesString(Resto,AcumuladorNuevo,StringFinal).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 % Requisitos Funcionales (RF06-RF17)
 
@@ -490,36 +560,19 @@ asignarTarea(Plataforma,IdTarea,PlataformaSalida):-
 % RF17 Representación como string
 % Descripción: Relaciona la plataforma con un string de varias líneas que la muestra.
 % Dom: Plataforma(plataforma)
-% Rec. String(string)
-
-imprimirPlataforma(Plataforma,String):-
-    Plataforma = [Agentes,ColaActual,MaxCiclos,Seed,CicloActual,Historial],
+% Rec: String(string)
+% Estrategia: No aplica.
+imprimirPlataforma(Plataforma,StringFinal):-
+    Plataforma = [Agentes,ColaActual,MaxCiclos,_,CicloActual,Historial],
     
 
     % Se calcula el total de tokens gastados
-    foldl(calcularTokensGastados,Agentes,0,TotalTokensGastados).
+    foldl(calcularTokensGastados,Agentes,0,TotalTokensGastados),
 
+    agentesString(Agentes,"",AgentesString),
+    tareasString(ColaActual,"",TareasString),
+    historialString(Historial,"",HistorialString),
 
+    % Plataforma
+    format(string(StringFinal),"\n PLATAFORMA \n Ciclo: ~w / ~w\n Tokens gastados: ~w\n AGENTES\n~w TAREAS\n~w HISTORIAL\n~w",[CicloActual,MaxCiclos,TotalTokensGastados,AgentesString,TareasString,HistorialString]).
 
-% Descripción: Calcula los tokens gastados por un agente y los suma a un acumulador
-% Dom: Agente(agente) X Acumulador(int) X AcumuladorNuevo(int)
-% Rec: No aplica
-% Estrategia: No aplica.
-calcularTokensGastados(Agente,Acumulador,AcumuladorNuevo):-
-    agenteTokensActuales(Agente,TokensActuales),
-    agenteTokensIniciales(Agente,TokensIniciales),
-
-    TokensGastadods is TokensIniciales - TokensActuales,
-    AcumuladorNuevo is Acumulador + TokensGastados.
-
-% Descripción: Convierte la lista de eventos del historial a un string
-% Dom: Historial(lista) X Acumulador(string)
-% Rec: StringFinal(string)
-% Caso Base
-historialString([],StringFinal,StringFinal).
-
-% Caso recursivo
-historialString([Evento | Resto],Acumulador,StringFinal):-
-    format(string(EventoString),"~w\n",[Evento]),
-    string_concat(Acumulador,EventoString,AcumuladorNuevo),
-    historialString(Resto,AcumuladorNuevo,StringFinal).
