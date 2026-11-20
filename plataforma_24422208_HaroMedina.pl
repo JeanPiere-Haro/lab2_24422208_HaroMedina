@@ -551,7 +551,45 @@ asignarTarea(Plataforma,IdTarea,PlataformaSalida):-
     append(Historial,[NuevoEvento],HistorialNuevo),
 
     PlataformaSalida = [AgentesNuevos,ColaNueva,MaxCiclos,Seed,CicloActual,HistorialNuevo].
-    
+
+
+% RF11 Ejecución de una tarea
+% Descripción: Relaciona la plataforma con otra en que la tarea asignada IdTarea quedó completada o fallida
+% Dom: Plataforma(plataforma) X IdTarea(int)
+% Rec: PlataformaSalida(plataforma)
+% Estrategia: Pendiente
+
+% RF12 Reflexión sobre una tarea
+% Descripción: Relaciona la plataforma con otra en que el agente de la tarea IdTarea, fallida por calidad, la reintentó y pagó de nuevo
+% Dom: Plataforma(plataforma) X IdTarea(int)
+% Rec: PlataformaSalida(plataforma)
+% Estrategia: Pendiente
+
+% RF13 Delegación de una tarea
+% Descripción: Relaciona la plataforma con otra en que el agende asignado a la tarea IdTarea la entregó al agente IdSubordinado, su subordinado directo.
+% Dom: Plataforma(plataforma) x IdTarea(int) X IdSubordinado(int)
+% Rec: PlataformaSalida(plataforma)
+% Estrategia: Pendiente
+
+% RF14: Ejecución de un ciclo
+% Descripción: Relaciona la plataforma con la que resulta de un ciclo. Falla si el ciclo actual ya que es igual al máximo.
+% Dom: Plataforma(plataforma)
+% Rec: PlataformaSalida(plataforma)
+% Estrategia: Pendiente
+
+% RF15 Ejecución de la plataforma
+% Descripción: Relaciona la plataforma con la que resulta de ejecutar ciclos hasta que no queden tareas pendientes ni asignadas, o hasta que el ciclo actual sea igual al máximo.
+% Dom: Plataforma(plataforma)
+% Rec: PlataformaSalida(plataforma)
+% Estrategia: Pendiente
+
+
+% RF16 Consulta de tareas
+% Descripción: Relaciona cada tarea de la cola con su id, estado y resultado.
+% Dom: Plataforma(plataforma) X IdTarea(int,ligado o sin ligar)
+% Rec: Estado(átomo de estadosTarea) X Resultado(término)
+% Estrategia: Backtraching sin predicados de orden superior.
+consultarTarea(Plataforma,IdTarea,Estado,Resultado).
 
 
 
