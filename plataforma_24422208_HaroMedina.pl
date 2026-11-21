@@ -571,6 +571,25 @@ asignarTarea(Plataforma,IdTarea,PlataformaSalida):-
 % Rec: PlataformaSalida(plataforma)
 % Estrategia: Pendiente
 
+delegarTarea(Plataforma,IdTarea,IdSubordinado,PlataformaSalida):-
+    Plataforma = [Agentes,ColaActual,MaxCiclos,Seed,CicloActual,Historial],
+    
+    % Verificación de condiciones
+    buscarTarea(IdTarea,ColaActual,Tarea),
+    tareaEstado(Tarea,asignada),
+    tareaAgente(Tarea,IdAsignado),
+
+    buscarAgente(IdAsignado,Agentes,Asignado),
+    buscarAgente(IdSubordinado,Agentes,Subordinado).
+
+
+
+
+
+
+
+
+
 % RF14: Ejecución de un ciclo
 % Descripción: Relaciona la plataforma con la que resulta de un ciclo. Falla si el ciclo actual ya que es igual al máximo.
 % Dom: Plataforma(plataforma)
@@ -589,7 +608,7 @@ asignarTarea(Plataforma,IdTarea,PlataformaSalida):-
 % Dom: Plataforma(plataforma) X IdTarea(int,ligado o sin ligar)
 % Rec: Estado(átomo de estadosTarea) X Resultado(término)
 % Estrategia: Backtraching sin predicados de orden superior.
-consultarTarea(Plataforma,IdTarea,Estado,Resultado).
+% consultarTarea(Plataforma,IdTarea,Estado,Resultado).
 
 
 
